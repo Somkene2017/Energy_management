@@ -17,94 +17,8 @@ BUILDING_DATA =pd.read_csv("Energy_usage_cranfield_campus_buildings_2024.csv")
 
 #allowed_city = ['Chicago', 'New York City', 'Washington']
 
-allowed_buildings = [None, "Airfield solar PV array",
-    "Campus building PVs",
-    "Campus Energy",
-    "Total campus electricity",
-    "Total Cranfield Campus PV",
-    "X 63 & 52 IT Servers",
-    "X AIRC Building",
-    "X B91 compressor house",
-    "X Baroness Young 1",
-    "X Baroness Young 2",
-    "X Baroness Young 3",
-    "X Baroness Young 4",
-    "X Baroness Young 5",
-    "X Baroness Young block 1-5",
-    "X Building 003",
-    "X Building 019",
-    "X Building 026",
-    "X Building 029",
-    "X Building 032",
-    "X Building 037",
-    "X Building 038",
-    "X Building 039",
-    "X Building 040",
-    "X Building 041",
-    "X Building 042",
-    "X Building 043",
-    "X Building 043A",
-    "X Building 044",
-    "X Building 045",
-    "X Building 046",
-    "X Building 050",
-    "X Building 052 Whittle",
-    "X Building 052A Vincent",
-    "X Building 053",
-    "X Building 054 Hudson",
-    "X Building 061",
-    "X Building 062",
-    "X Building 063",
-    "X Building 070",
-    "X Building 083",
-    "X Building 083 IMEC",
-    "X Building 088",
-    "X Building 090",
-    "X Building 108",
-    "X Building 111",
-    "X Building 115",
-    "X Building 122",
-    "X Building 240",
-    "X Building 30",
-    "X Building 33",
-    "X Chilver 2",
-    "X Chilver 3",
-    "X Conference Hotel",
-    "X Conway House",
-    "X Fedden Flats",
-    "X Icing Tunnel",
-    "X Lanchester 11",
-    "X Lanchester 12",
-    "X Lanchester 13",
-    "X Lanchester 14",
-    "X Lanchester 15",
-    "X Lanchester 16",
-    "X Lanchester 4",
-    "X Lanchester 5",
-    "X Lanchester 6",
-    "X Lanchester 7",
-    "X Lanchester 8",
-    "X Lanchester 9",
-    "X Lanchester Hall",
-    "X Library",
-    "X Martell House",
-    "X Medway Court Unit 5 (BlockF)",
-    "X Mitchell Hall",
-    "X Stringfellow 1",
-    "X Stringfellow 2",
-    "X Stringfellow 3",
-    "X Stringfellow 4",
-    "X Stringfellow 5",
-    "X Stringfellow Hall",
-    "X VCO/Finance",
-    "X085",
-    "X146 FAAM",
-    "XDARTeC",
-    "XData centre (C049)",
-    "XMedway Court Unit 3",
-    "Xsharedhouses"
-]
-
+allowed_buildings = BUILDING_DATA['site_name'].unique().tolist()
+allowed_buildings.insert(0, "all")
 allowed_months = [None, 'all', 'January', 'February', 'March', 'April', 'May', 'June']
 
 
@@ -123,7 +37,10 @@ def load_data(building, month, day):
     Returns:
         df - Pandas DataFrame containing building data filtered by month and day
     """
-    df = BUILDING_DATA[BUILDING_DATA["site_name"] == building]
+    df = BUILDING_DATA
+
+    if building != 'all':
+        df = BUILDING_DATA[BUILDING_DATA["site_name"] == building]
 
     df['Date'] = pd.to_datetime(df['Date'])
    #df['End Time'] = pd.to_datetime(df['End Time'])
@@ -204,7 +121,7 @@ def Maximum_Energy_stats(df):
 
 
 
-def plotter_for_heatmap(df,month):
+def plotter_for_heatmap(df,month, building_name):
     '''
     Generates a plotly bar chart for the top 10 count of unique values in a column of a dataframe
 
@@ -247,7 +164,7 @@ def plotter_for_heatmap(df,month):
     )
 
     plot_obj.update_layout(
-        title=f"Half-Hourly Energy Usage Heatmap in Cranfield University for {month} 2024",
+        title=f"{building_name} Half-Hourly Electricity Heatmap in Cranfield University for {month} 2024",
         xaxis_title="Time of Day",
         yaxis_title="Date"
     )
@@ -294,7 +211,7 @@ def main():
         day = st.selectbox(day_message, np.array(allowed_days))
         
         # gets user input for number of rows of the dataframe to be displayed 
-        rows = st.number_input("How manys rows of the dataframe do you wish to see? ", min_value=0, max_value=100, step=5)
+        rows = st.number_input("How manys rows of the data table do you wish to see? ", min_value=0, max_value=100, step=5)
         
         st.button("Calculate", on_click=set_stage, args=[3])
 
@@ -334,7 +251,7 @@ def main():
 
         #This tab contains the necessary charts of the descriptive statistics
         with tab3:
-            plotter_for_heatmap(df, month)
+            plotter_for_heatmap(df, month, building)
             #visual_value = st.selectbox("Choose a column to see the count of its unique values: ", [None, 'Start Station', 'End Station', 'combination_station'])
         
             #f visual_value is not None:
