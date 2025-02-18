@@ -17,7 +17,7 @@ BUILDING_DATA =pd.read_csv("Energy_usage_cranfield_campus_buildings_2024.csv")
 
 #allowed_city = ['Chicago', 'New York City', 'Washington']
 
-allowed_buildings = [None, 'all', "Airfield solar PV array",
+allowed_buildings = [None, "Airfield solar PV array",
     "Campus building PVs",
     "Campus Energy",
     "Total campus electricity",
