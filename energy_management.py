@@ -138,24 +138,7 @@ def load_data(building, month, day):
     return df
 
 
-def time_stats(df):
-    """Displays statistics on the most frequent times of travel."""
-    st.write('-'*40)
-    st.write('#### Calculating The Most Frequent Day of the month...')
-    start_time = time.time()
-    col1, col2, col3 = st.columns(3)
-    # display the most common month
-    col1.metric("Most common month", df['month'].mode()[0])
 
-    # display the most common day of week
-    col2.metric("Most common day of week", df['day_of_week'].mode()[0])
-
-    # display the most common start hour
-    col3.metric("Most common start hour", f"{df['Date'].dt.hour.mode()[0]}:00")
- 
-
-    st.write("\nThis took {} seconds.".format(round(time.time() - start_time, 3)))
-    st.write('-'*40)
     
 
 def minutes_format(minutes):
@@ -283,8 +266,8 @@ def set_stage(i):
     st.session_state.stage = i
 
 def main():
-    st.image("cloudberry_logo.png", caption="Cloudberry...All-in-One, Hassle-Free, Cost-Saving Energy Optimization​")
-    st.markdown('# Hello! Let\'s explore Cranfield\'s database!:smiley:')
+    st.image("cloudberry_logo.png", caption=f"Cloudberry...All-in-One, Hassle-Free, Cost-Saving Energy Optimization​")
+    st.markdown('# Hello! Let\'s explore Cranfield\'s Energy Consumption database!:smiley:')
     st.markdown("###### :warning: NOTE: Your required analysis will be based on the building you select. :warning:")
 
     building_message = "Choose the building number: (Baroness Young Hall, X Building 052A Vincent,X Data Centre [C049], etc): "
@@ -335,7 +318,7 @@ def main():
             st.markdown("## Click the expander to see! :point_down:")
             with st.expander("### Click to view Descriptive Statistics"):
 
-                time_stats(df)
+         
                 Maximum_Energy_stats(df)
 
         
