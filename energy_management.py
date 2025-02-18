@@ -12,14 +12,98 @@ import plotly.express as px
 
 
 
-CITY_DATA = { 'chicago': 'chicago.csv',
-              'new york city': 'new_york_city.csv',
-              'washington': 'washington.csv' }
+#BUILDING_DATA = { 'XO52A': 'Energy_usage_x052a_2024.csv',}
+BUILDING_DATA =pd.read_csv("Energy_usage_cranfield_campus_buildings_2024.csv")
 
+#allowed_city = ['Chicago', 'New York City', 'Washington']
 
-allowed_city = ['Chicago', 'New York City', 'Washington']
-
-allowed_buildings = [None, 'all', 'January', 'February', 'March', 'April', 'May', 'June']
+allowed_buildings = [None, 'all', "Airfield solar PV array",
+    "Campus building PVs",
+    "Campus Energy",
+    "Total campus electricity",
+    "Total Cranfield Campus PV",
+    "X 63 & 52 IT Servers",
+    "X AIRC Building",
+    "X B91 compressor house",
+    "X Baroness Young 1",
+    "X Baroness Young 2",
+    "X Baroness Young 3",
+    "X Baroness Young 4",
+    "X Baroness Young 5",
+    "X Baroness Young block 1-5",
+    "X Building 003",
+    "X Building 019",
+    "X Building 026",
+    "X Building 029",
+    "X Building 032",
+    "X Building 037",
+    "X Building 038",
+    "X Building 039",
+    "X Building 040",
+    "X Building 041",
+    "X Building 042",
+    "X Building 043",
+    "X Building 043A",
+    "X Building 044",
+    "X Building 045",
+    "X Building 046",
+    "X Building 050",
+    "X Building 052 Whittle",
+    "X Building 052A Vincent",
+    "X Building 053",
+    "X Building 054 Hudson",
+    "X Building 061",
+    "X Building 062",
+    "X Building 063",
+    "X Building 070",
+    "X Building 083",
+    "X Building 083 IMEC",
+    "X Building 088",
+    "X Building 090",
+    "X Building 108",
+    "X Building 111",
+    "X Building 115",
+    "X Building 122",
+    "X Building 240",
+    "X Building 30",
+    "X Building 33",
+    "X Chilver 2",
+    "X Chilver 3",
+    "X Conference Hotel",
+    "X Conway House",
+    "X Fedden Flats",
+    "X Icing Tunnel",
+    "X Lanchester 11",
+    "X Lanchester 12",
+    "X Lanchester 13",
+    "X Lanchester 14",
+    "X Lanchester 15",
+    "X Lanchester 16",
+    "X Lanchester 4",
+    "X Lanchester 5",
+    "X Lanchester 6",
+    "X Lanchester 7",
+    "X Lanchester 8",
+    "X Lanchester 9",
+    "X Lanchester Hall",
+    "X Library",
+    "X Martell House",
+    "X Medway Court Unit 5 (BlockF)",
+    "X Mitchell Hall",
+    "X Stringfellow 1",
+    "X Stringfellow 2",
+    "X Stringfellow 3",
+    "X Stringfellow 4",
+    "X Stringfellow 5",
+    "X Stringfellow Hall",
+    "X VCO/Finance",
+    "X085",
+    "X146 FAAM",
+    "XDARTeC",
+    "XData centre (C049)",
+    "XMedway Court Unit 3",
+    "Xsharedhouses"
+]
 
 allowed_months = [None, 'all', 'January', 'February', 'March', 'April', 'May', 'June']
 
@@ -28,24 +112,24 @@ allowed_days = ['all', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', '
 
 
 
-def load_data(city, month, day):
+def load_data(building, month, day):
     """
-    Loads data for the specified city and filters by month and day if applicable.
+    Loads data for the specified building and filters by month and day if applicable.
 
     Args:
-        (str) city - name of the city to analyze
+        (str) building - name of the building to analyze
         (str) month - name of the month to filter by, or "all" to apply no month filter
         (str) day - name of the day of week to filter by, or "all" to apply no day filter
     Returns:
-        df - Pandas DataFrame containing city data filtered by month and day
+        df - Pandas DataFrame containing building data filtered by month and day
     """
-    df = pd.read_csv(CITY_DATA[city.lower()])
+    df = BUILDING_DATA[BUILDING_DATA["site_name"] == building]
 
-    df['Start Time'] = pd.to_datetime(df['Start Time'])
-    df['End Time'] = pd.to_datetime(df['End Time'])
+    df['Date'] = pd.to_datetime(df['Date'])
+   #df['End Time'] = pd.to_datetime(df['End Time'])
 
-    df['month']=df['Start Time'].dt.month_name()
-    df['day_of_week'] = df['Start Time'].dt.day_name()
+    df['month']=df['Date'].dt.month_name()
+    df['day_of_week'] = df['Date'].dt.day_name()
 
     if month != 'all':
         df = df[df['month'] == month.title()]
@@ -57,7 +141,7 @@ def load_data(city, month, day):
 def time_stats(df):
     """Displays statistics on the most frequent times of travel."""
     st.write('-'*40)
-    st.write('#### Calculating The Most Frequent Times of Travel...')
+    st.write('#### Calculating The Most Frequent Day of the month...')
     start_time = time.time()
     col1, col2, col3 = st.columns(3)
     # display the most common month
@@ -67,7 +151,7 @@ def time_stats(df):
     col2.metric("Most common day of week", df['day_of_week'].mode()[0])
 
     # display the most common start hour
-    col3.metric("Most common start hour", f"{df['Start Time'].dt.hour.mode()[0]}:00")
+    col3.metric("Most common start hour", f"{df['Date'].dt.hour.mode()[0]}:00")
  
 
     st.write("\nThis took {} seconds.".format(round(time.time() - start_time, 3)))
@@ -91,91 +175,53 @@ def minutes_format(minutes):
   return int(days), int(hours), int(minutes)
 
 
-def station_stats(df):
+def Maximum_Energy_stats(df):
     """Displays statistics on the most popular stations and trip."""
 
-    st.write('#### Calculating The Most Popular Stations and Trip...')
+    st.write('#### Calculating Energy Usage Statistics...')
     start_time = time.time()
     
-    tab1, tab2, tab3 = st.tabs(["Start station", "End Station", "Combination of Stations"])
+    col1, col2, col3 = st.columns(3)
+    df2 = df.drop(df.columns[:3], axis=1)
 
-    with tab1:
-        # display most commonly used start station
-        st.metric("Most commonly used Start Station", df['Start Station'].mode()[0])
+    df3 = df2.drop(df2.columns[-2:], axis=1)
+    df3['Date'] = df3['Date'].dt.strftime("%Y-%m-%d")
+    # Set the date column as the index.
+    #    Replace "Date" with the actual name of your date column if different.
+    df4 = df3.set_index("Date")
 
-    with tab2:
-        # display most commonly used end station
-        st.metric("Most commonly used End Station:", df['End Station'].mode()[0])
 
-    with tab3:
-        # display most frequent combination of start station and end station trip
-        df['combination_station'] = df['Start Station'] + " + " + df['End Station']
-        st.markdown(f"###### Most Frequent combination of Start - End station:") 
-        st.markdown(f"#### {df['combination_station'].mode()[0]}")
+    # Convert the DataFrame from wide format (one row per date, columns for time intervals)
+    #    into a long (stacked) Series with a MultiIndex (Date, Time).
+    stacked = df4.stack()
+
+    # 6. Find the maximum energy usage and its corresponding (Date, Time).
+    max_usage = stacked.max()        # Maximum usage value
+    max_idx = stacked.idxmax()         # MultiIndex tuple: (Date, Time)
+
+    # 7. Unpack the tuple into the specific date and time.
+    max_date, max_time = max_idx
+
+    # 8. Print the results.
+    #print(f"Maximum usage----->: {max_usage} kWh")
+    #print(f"Occurred on: {max_date} at {max_time}")
+
+    # display Maximum Usage
+    col1.metric("Maximum usage", f"{max_usage} kWh")
+
+    # display Time of occurence of Maximum Usage
+    
+    col2.metric("Occurred on:", f"{max_date}")
+
+
+    col3.metric("Time:", f"{max_time}")
         
     st.write("\nThis took {} seconds.".format(round(time.time() - start_time, 3)))
     st.write('-'*40)
 
 
-def trip_duration_stats(df):
-    """Displays statistics on the total and average trip duration."""
 
-    st.write('#### Calculating Trip Duration...')
-    start_time = time.time()
-    # display total travel time
-    total_time= df['Trip Duration'].sum()
-    day,hour,minute = minutes_format(total_time)
-
-    
-    tab1, tab2 =st.tabs(['Travel Time', "Date"])
-    #Travel Time Metric
-    with tab1:
-        st.metric("Total travel time",  f"{day} day(s), {hour} hr(s) and {minute} min(s)")
-    # display mean travel time
-        mean_travel_time = df['Trip Duration'].mean()
-        day2,hour2,minute2 = minutes_format(mean_travel_time)
-
-        st.metric("The mean travel time", f"{day2} day(s), {hour2} hr(s) and {minute2} min(s)")
-
-    #Date Metric    
-    with tab2:
-        col1, col2 = st.columns(2)
-        col1.metric("From", str(df['Start Time'].dt.date.min()) )
-        col2.metric("To", str(df['End Time'].dt.date.max()))
-        
-
-    st.write("\nThis took {} seconds.".format(round(time.time() - start_time, 3)))
-    st.write('-'*40)
-
-
-def user_stats(df):
-    """Displays statistics on bikeshare users."""
-
-    st.write('#### Calculating User Stats...')
-    start_time = time.time()
-
-    tab1, tab2 = st.tabs(["Birth Analysis", "User & Gender Count"])
-    with tab1:
-        col1, col2, col3 = st.columns(3)
-        if ('Birth Year' in df.columns):
-            # Display earliest, most recent, and most common year of birth
-            col1.metric("Earliest year of birth", int(df['Birth Year'].min()))
-            col2.metric("Most recent year of birth", int(df['Birth Year'].max()))
-            col3.metric("Most common year of birth", int(df['Birth Year'].mode()[0]))
-
-    with tab2:
-        col4, col5 = st.columns(2)
-        # Display counts of user types
-        col4.write(df['User Type'].value_counts())
-        if ('Gender' in df.columns):
-            # Display counts of gender
-            col5.write(df['Gender'].value_counts())
-
-
-    st.write("\nThis took {} seconds.".format(round(time.time() - start_time, 3)))
-    st.write('-'*40)
-
-def plotter_for_heatmap():
+def plotter_for_heatmap(df,month):
     '''
     Generates a plotly bar chart for the top 10 count of unique values in a column of a dataframe
 
@@ -192,17 +238,16 @@ def plotter_for_heatmap():
                     #labels={'index':column_name, 'Start Station': f'Count of {column_name}' })
 
         # 1. Load the CSV file.
-    dataframe = pd.read_csv("Energy_usage_x052a_2024.csv")
+    df2 = df.drop(df.columns[:3], axis=1)
+
+    df3 = df2.drop(df2.columns[-2:], axis=1)
+    # 3. Set the date column as the index.
+    #    Replace "Date" with the actual name of your date column if different.
+    df4 = df3.set_index("Date")    
 
     # 2. (Optional) Parse the date column if needed.
     #    Adjust "Date" to whatever your date column is called, and specify the correct format.
     # df["Date"] = pd.to_datetime(df["Date"], format="%Y-%m-%d")
-
-    #drop the three first columns
-    dataframe.drop(dataframe.columns[:3], axis=1, inplace=True)
-
-    # 3. Set the date column as the DataFrame index, so rows become individual dates.
-    dataframe.set_index("Date", inplace=True)
 
     # 4. Sort the half-hour columns in chronological order (optional but helpful).
     #    If your columns are strings like "0:30", "1:00", "1:30", etc., 
@@ -212,14 +257,14 @@ def plotter_for_heatmap():
 
     # 5. Create the heatmap using px.imshow (wide-format data).
     plot_obj = px.imshow(
-        dataframe[334:],
+        df4,
         color_continuous_scale="RdYlGn_r",  # Red = higher usage, Green = lower usage
         labels={"color": "Usage (kWh)"},
         aspect="auto"
     )
 
     plot_obj.update_layout(
-        title="Half-Hourly Energy Usage Heatmap in Cranfield University for January 2025",
+        title=f"Half-Hourly Energy Usage Heatmap in Cranfield University for {month} 2024",
         xaxis_title="Time of Day",
         yaxis_title="Date"
     )
@@ -238,16 +283,17 @@ def set_stage(i):
     st.session_state.stage = i
 
 def main():
+    st.image("cloudberry_logo.png", caption="Cloudberry...All-in-One, Hassle-Free, Cost-Saving Energy Optimization​")
     st.markdown('# Hello! Let\'s explore Cranfield\'s database!:smiley:')
-    st.markdown("###### :warning: NOTE: You must enter the correct period. Else, the program will not run :warning:")
+    st.markdown("###### :warning: NOTE: Your required analysis will be based on the building you select. :warning:")
 
-    city_message = "Choose the building number: (Chicago, New York City or Washington): "
+    building_message = "Choose the building number: (Baroness Young Hall, X Building 052A Vincent,X Data Centre [C049], etc): "
     
-    # get user input for city (chicago, new york city, washington) before proceeding to the next stage of the app
-    city = st.text_input(city_message, on_change=set_stage, args=[1]).lower()
+    # get user input for building (chicago, new york city, washington) before proceeding to the next stage of the app
+    building = st.selectbox(building_message, np.array(allowed_buildings), on_change=set_stage, args=[1])
    
-    if city.title() not in allowed_city:
-        set_stage(0)
+    #if building.title() not in allowed_building:
+       # set_stage(0)
 
     
     if st.session_state.stage >= 1:
@@ -280,7 +326,7 @@ def main():
         # End of progress bar
 
         #Loading the dataframe
-        df = load_data(city, month, day)
+        df = load_data(building, month, day)
         
         tab1, tab2, tab3 = st.tabs(["**Descriptive Statistics**", "**View DataFrame**", "**Charts**:chart_with_downwards_trend:"])
 
@@ -290,22 +336,22 @@ def main():
             with st.expander("### Click to view Descriptive Statistics"):
 
                 time_stats(df)
-                station_stats(df)
-                trip_duration_stats(df)
-                user_stats(df)
+                Maximum_Energy_stats(df)
+
         
         #This tab contains the dataframe if the user wishes to view it
         with tab2:
 
             if rows != 0:
-                df2 = pd.read_csv("Energy_usage_x052a_2024.csv")
-                st.write(df2.head(rows))
+                #df = pd.read_csv("Energy_usage_x052a_2024.csv")
+                #df2 = df.drop(df.columns[-2:], axis=1)
+                st.write(df.head(rows))
             else:
                 st.write('_Select number of rows to view from above_')
 
         #This tab contains the necessary charts of the descriptive statistics
         with tab3:
-            plotter_for_heatmap()
+            plotter_for_heatmap(df, month)
             #visual_value = st.selectbox("Choose a column to see the count of its unique values: ", [None, 'Start Station', 'End Station', 'combination_station'])
         
             #f visual_value is not None:
