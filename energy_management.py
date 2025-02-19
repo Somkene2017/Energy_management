@@ -37,7 +37,7 @@ def load_data(building, month, day):
     Returns:
         df - Pandas DataFrame containing building data filtered by month and day
     """
-    df = BUILDING_DATA
+    df = BUILDING_DATA.copy()
 
     if building != 'all':
         df = BUILDING_DATA[BUILDING_DATA["site_name"] == building]
@@ -53,9 +53,6 @@ def load_data(building, month, day):
     if day != 'all':
         df = df[df['day_of_week'] == day.title()]
     return df
-
-
-
     
 
 def minutes_format(minutes):
@@ -73,6 +70,22 @@ def minutes_format(minutes):
   minutes = minutes % 60
 
   return int(days), int(hours), int(minutes)
+
+def Total_Energy_stats(df):
+    """Displays statistics on the most popular stations and trip."""
+
+    st.write('#### Calculating Energy Usage Statistics...')
+    start_time = time.time()
+    
+    col1, col2, col3 = st.columns(3)
+    df2 = df.drop(df.columns[:3], axis=1)
+
+    df3 = df2.drop(df2.columns[-2:], axis=1)
+    df3['Date'] = df3['Date'].dt.strftime("%Y-%m-%d")
+    # Set the date column as the index.
+    #    Replace "Date" with the actual name of your date column if different.
+    df4 = df3.set_index("Date")
+
 
 
 def Maximum_Energy_stats(df):
@@ -145,16 +158,6 @@ def plotter_for_heatmap(df,month, building_name):
     #    Replace "Date" with the actual name of your date column if different.
     df4 = df3.set_index("Date")    
 
-    # 2. (Optional) Parse the date column if needed.
-    #    Adjust "Date" to whatever your date column is called, and specify the correct format.
-    # df["Date"] = pd.to_datetime(df["Date"], format="%Y-%m-%d")
-
-    # 4. Sort the half-hour columns in chronological order (optional but helpful).
-    #    If your columns are strings like "0:30", "1:00", "1:30", etc., 
-    #    we can parse them as timedeltas to sort properly.
-    #    If “24:00:00” causes a parsing error, you might rename it to "24:00" or similar.
-    #df = df[sorted(df.columns, key=lambda x: pd.to_timedelta(x))]
-
     # 5. Create the heatmap using px.imshow (wide-format data).
     plot_obj = px.imshow(
         df4,
@@ -175,6 +178,41 @@ def plotter_for_heatmap(df,month, building_name):
     hoverongaps=False  # optional, to disable hover on the gap areas)
     )
     st.plotly_chart(plot_obj, use_container_width=True)
+    
+def plot_total_energy_per_month(building_name):
+    # 1. Load the CSV file
+    df= pd.read_csv("Energy_usage_cranfield_campus_buildings_2024.csv")
+    
+    # 2. Filter for "Airfield solar PV array"
+    df_site = df[df["site_name"] == building_name].copy()
+    
+    # 3. Convert the 'Date' column to datetime format
+    df_site["Date"] = pd.to_datetime(df_site["Date"])
+    
+    # 4. Identify usage columns (assume all columns except 'site_name' and 'Date')
+    usage_cols = df_site.columns.drop(["site_name", "Date"])
+    
+    # 5. Sum usage values across each row to get daily total energy usage
+    df_site["daily_total"] = df_site[usage_cols].sum(axis=1)
+    
+    # 6. Extract the month in "YYYY-MM" format from the Date column
+    df_site["month"] = df_site["Date"].dt.month_name()
+    
+    # 7. Group by month and sum daily totals to get monthly energy usage
+    monthly_totals = df_site.groupby("month")["daily_total"].sum().reset_index()
+
+    # 8. Create a bar chart using Plotly Express
+    fig = px.bar(
+        monthly_totals,
+        x="month",
+        y="daily_total",
+        labels={"month": "Month", "daily_total": "Total Energy (kWh)"},
+        title=f"Total Energy per Month for {building_name} in 2024"
+    )
+    fig.update_layout(xaxis_tickangle=-45)    
+    # Rotate x-axis labels for better readability
+    st.plotly_chart(fig, use_container_width=True)
+
 
 #This initilizes the streamlit's session_state dictionary in the format 'stage' : 0
 if 'stage' not in st.session_state:
@@ -251,7 +289,11 @@ def main():
 
         #This tab contains the necessary charts of the descriptive statistics
         with tab3:
-            plotter_for_heatmap(df, month, building)
+            tab_chart_1, tab_chart_2 = st.tabs(["Electricity HeatMap", "Electricity Bar Chart"])
+            with tab_chart_1:
+                plotter_for_heatmap(df, month, building)
+            with tab_chart_2:
+                plot_total_energy_per_month(building)
             #visual_value = st.selectbox("Choose a column to see the count of its unique values: ", [None, 'Start Station', 'End Station', 'combination_station'])
         
             #f visual_value is not None:
