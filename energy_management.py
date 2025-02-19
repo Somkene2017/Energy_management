@@ -179,7 +179,7 @@ def plotter_for_heatmap(df,month, building_name):
     )
     st.plotly_chart(plot_obj, use_container_width=True)
     
-def plot_total_energy_per_month(building_name):
+def total_energy_bar_chart_per_month(building_name):
     # 1. Load the CSV file
     df= pd.read_csv("Energy_usage_cranfield_campus_buildings_2024.csv")
     
@@ -213,6 +213,49 @@ def plot_total_energy_per_month(building_name):
     # Rotate x-axis labels for better readability
     st.plotly_chart(fig, use_container_width=True)
 
+def total_energy_line_chart_per_month(df_site, building_name, day, month):
+    # 1. Load the CSV file
+    #df= pd.read_csv("Energy_usage_cranfield_campus_buildings_2024.csv")
+    
+    # 2. Filter for "Airfield solar PV array"
+    #df_site = df[df["site_name"] == building_name].copy()
+    
+    # 3. Convert the 'Date' column to datetime format
+    #df_site["Date"] = pd.to_datetime(df_site["Date"])
+    
+    # 4. Identify usage columns (assume all columns except 'site_name' and 'Date')
+    usage_cols = df_site.columns.drop(["site_name", "Date", "month", "day_of_week"])
+    
+    # 5. Sum usage values across each row to get daily total energy usage
+    df_site["daily_total"] = df_site[usage_cols].sum(axis=1)
+    
+    # 6. Extract the month in "YYYY-MM" format from the Date column
+
+    
+    # 7. Group by month and sum daily totals to get monthly energy usage
+    daily_totals = df_site.groupby("Date")["daily_total"].sum().reset_index()
+
+    # 8. Create a bar chart using Plotly Express
+    if day != "all":
+        fig = px.line(
+            daily_totals,
+            x="Date",
+            y="daily_total",
+            labels={"month": "Month", "daily_total": "Total Energy (kWh)"},
+            title=f"{building_name} Profile Energy Data for all {day}s in {month}, 2024"
+        )
+    else:
+        fig = px.line(
+            daily_totals,
+            x="Date",
+            y="daily_total",
+            labels={"month": "Month", "daily_total": "Total Energy (kWh)"},
+            title=f"{building_name} Profile Energy Data for {month}, 2024"
+        )
+
+    fig.update_layout(xaxis_tickangle=-45)    
+    # Rotate x-axis labels for better readability
+    st.plotly_chart(fig, use_container_width=True)
 
 #This initilizes the streamlit's session_state dictionary in the format 'stage' : 0
 if 'stage' not in st.session_state:
@@ -289,11 +332,13 @@ def main():
 
         #This tab contains the necessary charts of the descriptive statistics
         with tab3:
-            tab_chart_1, tab_chart_2 = st.tabs(["Electricity HeatMap", "Electricity Bar Chart"])
+            tab_chart_1, tab_chart_2, tab_chart_3 = st.tabs(["Electricity HeatMap", "Electricity Bar Chart", "Electricity Line Chart"])
             with tab_chart_1:
                 plotter_for_heatmap(df, month, building)
             with tab_chart_2:
-                plot_total_energy_per_month(building)
+                total_energy_bar_chart_per_month(building)
+            with tab_chart_3:
+                total_energy_line_chart_per_month(df, building,day, month)            
             #visual_value = st.selectbox("Choose a column to see the count of its unique values: ", [None, 'Start Station', 'End Station', 'combination_station'])
         
             #f visual_value is not None:
