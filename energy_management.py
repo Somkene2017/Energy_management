@@ -18,7 +18,7 @@ BUILDING_DATA =pd.read_csv("Energy_usage_cranfield_campus_buildings_2024.csv")
 #allowed_city = ['Chicago', 'New York City', 'Washington']
 
 allowed_buildings = BUILDING_DATA['site_name'].unique().tolist()
-allowed_buildings.insert(0, "all")
+allowed_buildings.insert(0, None)
 allowed_months = [None, 'all', 'January', 'February', 'March', 'April', 'May', 'June']
 
 
@@ -37,9 +37,9 @@ def load_data(building, month, day):
     Returns:
         df - Pandas DataFrame containing building data filtered by month and day
     """
-    df = BUILDING_DATA.copy()
+    #df = BUILDING_DATA.copy()
 
-    if building != 'all':
+    if building != None:
         df = BUILDING_DATA[BUILDING_DATA["site_name"] == building]
 
     df['Date'] = pd.to_datetime(df['Date'])
@@ -273,8 +273,8 @@ def main():
     # get user input for building (chicago, new york city, washington) before proceeding to the next stage of the app
     building = st.selectbox(building_message, np.array(allowed_buildings), on_change=set_stage, args=[1])
    
-    #if building.title() not in allowed_building:
-       # set_stage(0)
+    if building == None:
+       set_stage(0)
 
     
     if st.session_state.stage >= 1:
