@@ -13,6 +13,7 @@ import plotly.graph_objects as go
 # 5) <a href="https://www.flaticon.com/free-icons/water" title="water icons">Water icons created by Freepik - Flaticon</a>
 # 6) <a href="https://www.flaticon.com/free-icons/clean-energy" title="clean energy icons">Clean energy icons created by Flat Icons - Flaticon</a>
 # 7) <a href="https://www.flaticon.com/free-icons/carbon" title="carbon icons">Carbon icons created by juicy_fish - Flaticon</a>
+# 8) Zelvion Energy (Energy Entrepreneurship -- Cranfield University)
 
 st.set_page_config(page_title="Cloudberry Energy Dashboard", page_icon="cloudberry_logo_2.png",layout="wide")
 
@@ -102,7 +103,7 @@ def create_gauge(title, building_annual, total_annual, color, unit, utility):
 
     # Add percentage text in the center 
     fig.add_annotation(
-        text=f"<b>{progress:.2}%</b>",
+        text=f"<b>{round(progress,2)}%</b>",
         x=0.5, y=0.5,
         #font=dict(size=28, color="white"),
         font=dict(size=28),
@@ -124,8 +125,8 @@ def create_gauge(title, building_annual, total_annual, color, unit, utility):
         col4, col5 = st.columns(2)
         col4.plotly_chart(fig)
         with st.container():
-            col5.metric(f"Annual {utility} Consumption {unit}", f"{building_annual:,} {unit}")
-            col5.metric(f"Total Annual {utility} Consumption ({unit})", f"{total_annual:,} {unit}")
+            col5.metric(f"Annual {utility} Cons. ({unit})", f"{building_annual:,}")
+            col5.metric(f"Tot. Annual {utility} Cons. ({unit})", f"{total_annual:,}")
 
 
 def Load_Total_Utility_stats(df):
@@ -166,7 +167,8 @@ def Total_Energy_stats(energy, water):
     col4,col5,col6 = st.columns(3)
     col4.metric("Annual Energy Consumption (KWh)", f"{energy_cons:,}")
     col5.metric("Annual Water Consumption (m\u00b3)", f"{water_cons:,}")
-    col6.metric("Annual CO Emissions (kgCO\u2082e/kWh)", f"{format_ghg_intensity(0.7)}")
+    #col6.metric("Annual CO2 Emissions (kgCO\u2082e/kWh)", f"{format_ghg_intensity(0.7)}")
+    col6.metric("Annual CO2 Emissions (gCO\u2082e/kWh)", f"{700}")
 
     st.write("\nThis took {} seconds.".format(round(time.time() - start_time, 3)))
     st.write('-'*40)
@@ -175,7 +177,7 @@ def Total_Energy_stats(energy, water):
 def Maximum_Energy_stats(df,utility,unit):
     """Displays statistics on the most popular stations and trip."""
 
-    st.write('#### Calculating {utility} Usage Statistics...')
+    st.write(f'#### Calculating Maximum {utility} Usage Statistics...')
     start_time = time.time()
     
     col1, col2, col3 = st.columns(3)
@@ -324,12 +326,12 @@ def total_energy_line_chart_per_month(df_site, building_name, day, month, utilit
 def decison_maker(building):
     # Room data
     data = [
-        {"name": f"{building} Room1", "temp": 21, "co2": 846, "humidity": 31, "controls": ["HVAC", "Heating", "Lights 1", "Lights 2"]},
-        {"name": f"{building} Room2", "temp": 16, "co2": 262, "humidity": 42, "controls": ["HVAC", "Heating", "Lights 1"]},
-        {"name": f"{building} Room3", "temp": 20, "co2": 694, "humidity": 29, "controls": ["HVAC 1", "HVAC 2", "Heating", "Lights 1", "Lights 2", "Lights 3", "Lights 4"]}
+        {"name": f"{building} Room1", "temp": 15, "co2": 434, "humidity": 23, "controls": ["Heating (ASHP/GSHP)", "Lightbulb 1", "Lightbulb 2"]},
+        {"name": f"{building} Room2", "temp": 24, "co2": 232, "humidity": 26, "controls": ["Heating (ASHP/GSHP)", "Lightbulb 1"]},
+        {"name": f"{building} Room3", "temp": 23, "co2": 143, "humidity": 30, "controls": ["Heating (ASHP/GSHP)", "Lightbulb 1", "Lightbulb 2"]}
     ]
 
-    st.title("Real Time Measure")
+    st.title("Real Time (AI-Driven) Control")
     st.text_input("Search Room", placeholder="Search Room")
 
     for room in data:
@@ -354,59 +356,66 @@ def set_stage(i):
 def main():
     #st.markdown(dark_mode_css, unsafe_allow_html=True)
     # Now insert some more in the container
+    col_prompt, col_metrics, col_AI = st.columns(3)
+    with st.container():
+        with col_prompt.container():
+            col_prompt.image("cloudberry_logo.png", caption=f"Cloudberry...All-in-One, Hassle-Free, Cost-Saving Energy Optimization​")
+            col_prompt.markdown('### Hello! Let\'s explore Cranfield\'s Energy Consumption database!:smiley:')
+            col_prompt.markdown("###### :warning: NOTE: Your required analysis will be based on the building you select. :warning:")
 
-    st.image("cloudberry_logo.png", caption=f"Cloudberry...All-in-One, Hassle-Free, Cost-Saving Energy Optimization​")
-    st.markdown('# Hello! Let\'s explore Cranfield\'s Energy Consumption database!:smiley:')
-    st.markdown("###### :warning: NOTE: Your required analysis will be based on the building you select. :warning:")
-
-    building_message = "Choose the building number: (Baroness Young Hall, X Building 052A Vincent,X Data Centre [C049], etc): "
-    
-    # get user input for building (chicago, new york city, washington) before proceeding to the next stage of the app
-    building = st.selectbox(building_message, np.array(allowed_buildings), on_change=set_stage, args=[1])
-   
-    if building == None:
-       set_stage(0)
-
-    
-    if st.session_state.stage >= 1:
-        month_message = "Choose your month you want to analyze: January, February, March, April, May, June or all: "
-
-        # get user input for month (all, january, february, ... , june)
-        month =st.selectbox(month_message, np.array(allowed_months), on_change=set_stage, args=[2])
-        if month is None:
-            set_stage(1)
-
-    if st.session_state.stage >= 2:
-        day_message = "Choose your day you want to analyze: \n monday, tuesday, wednesday, thursday, friday, saturday, sunday or all:"
-
-        # get user input for day of week (all, monday, tuesday, ... sunday)
-        day = st.selectbox(day_message, np.array(allowed_days), on_change=set_stage, args=[3])
-        if day is None:
-            set_stage(2)
+            building_message = "Choose the building number: (Baroness Young Hall, X Building 052A Vincent,X Data Centre [C049], etc): "
+            
+            # get user input for building (chicago, new york city, washington) before proceeding to the next stage of the app
+            building = col_prompt.selectbox(building_message, np.array(allowed_buildings), on_change=set_stage, args=[1])
         
-        # gets user input for number of rows of the dataframe to be displayed 
-        rows = st.number_input("How manys rows of the data table do you wish to see? ", min_value=0, max_value=100, step=5)
-        
-        #st.button("Calculate", on_click=set_stage, args=[3])
+            if building == None:
+                set_stage(0)
+
+            
+            if st.session_state.stage >= 1:
+                month_message = "Choose your month you want to analyze: January, February, March, April, May, June or all: "
+
+                # get user input for month (all, january, february, ... , june)
+                month =col_prompt.selectbox(month_message, np.array(allowed_months), on_change=set_stage, args=[2])
+                if month is None:
+                    set_stage(1)
+
+            if st.session_state.stage >= 2:
+                day_message = "Choose your day you want to analyze: \n monday, tuesday, wednesday, thursday, friday, saturday, sunday or all:"
+
+                # get user input for day of week (all, monday, tuesday, ... sunday)
+                day = col_prompt.selectbox(day_message, np.array(allowed_days), on_change=set_stage, args=[3])
+                if day is None:
+                    set_stage(2)
+                
+                # gets user input for number of rows of the dataframe to be displayed 
+                rows = col_prompt.number_input("How manys rows of the data table do you wish to see? ", min_value=0, max_value=100, step=5)
+                # Progress Bar that loads the the three tabs
+                my_bar = col_prompt.progress(0)
+
+                for percent_complete in range(100):
+                    time.sleep(0.01)
+                    my_bar.progress(percent_complete + 1)
+                col_prompt.success("Done")
+                # End of progress bar
+
+          
+                #st.button("Calculate", on_click=set_stage, args=[3])            
+            #col_prompt.write("1")
 
     if st.session_state.stage >= 3:
-        # Progress Bar that loads the the three tabs
-        my_bar = st.progress(0)
-
-        for percent_complete in range(100):
-            time.sleep(0.01)
-            my_bar.progress(percent_complete + 1)
-        st.success("Done")
-        # End of progress bar
-
         #Loading the dataframe
-        df, water = load_data(building, month, day)
-    
-        tab1, tab2, tab3 = st.tabs(["**Descriptive Statistics**", "**View DataFrame**", "**Charts**:chart_with_downwards_trend:"])
-
-        #This tab contains the descriptive statistics
-        with tab1:
-            decison_maker(building)
+        df, water = load_data(building, month, day)      
+        if rows != 0:
+        #df = pd.read_csv("Energy_usage_x052a_2024.csv")
+        #df2 = df.drop(df.columns[-2:], axis=1)
+            col_prompt.markdown('##### Energy Table')
+            col_prompt.write(df.head(rows))
+        else:
+            col_prompt.write('_Select number of rows to view from above_')          
+        with col_metrics.container():
+            #Loading the dataframe
+            #decison_maker(building)
             Total_Energy_stats(df, water)
 
             x = int(df['daily_total'].sum())
@@ -441,44 +450,66 @@ def main():
             
             #Total_Energy_stats(df,water)
             Maximum_Energy_stats(df, **utility_metrics["Electricity Consumption"])
-            col_energy, col_water = st.columns(2)
-            with col_energy:
-                create_gauge("Electricity Consumption Intensity", **donut_metrics["Electricity Consumption"])
-            with col_water:
-                create_gauge("Water Consumption Intensity", **donut_metrics["Water Consumption"])
+            #col_energy, col_water = st.columns(2)
+            #with col_energy:
+            create_gauge("Electricity Metrics", **donut_metrics["Electricity Consumption"])
+            #with col_water:
+            create_gauge("Water Metrics", **donut_metrics["Water Consumption"])
             #Maximum_Energy_stats(water, **utility_metrics["Water Consumption"])    
-        
-        #This tab contains the dataframe if the user wishes to view it
-        with tab2:
+            # col_metrics.write("2")
+
+
+        with col_AI.container():
+            decison_maker(building)
             if rows != 0:
                 #df = pd.read_csv("Energy_usage_x052a_2024.csv")
                 #df2 = df.drop(df.columns[-2:], axis=1)
-                with st.container():
-                    energy_frame, water_frame = st.columns(2)
-                    energy_frame.write(df.head(rows))
-                    water_frame.write(water.head(rows))
+                col_AI.markdown('##### Water Usage Table')
+                st.write("")
+                st.write("")
+                st.write("")
+                st.write("")
+                st.write("")
+                st.write("")
+                st.write("")
+                st.write("")
+                st.write("")
+                st.write("")
+                st.write("")
+                st.write("")
+                st.write("")
+                st.write("")
+                col_AI.write(water.head(rows))
+        
             else:
-                st.write('_Select number of rows to view from above_')
+                st.write('_Select number of rows to view from above_')                   
+            
 
-        #This tab contains the necessary charts of the descriptive statistics
-        with tab3:
 
-            tab_chart_1, tab_chart_2, tab_chart_3, tab_chart_4, tab_chart_5, tab_chart_6 = st.tabs(["Electricity HeatMap", "Electricity Bar Chart", "Electricity Line Chart", "Water HeatMap", "Water Bar Chart", "Water Line Chart"])
-            with tab_chart_1:
-                plotter_for_heatmap(df, month, building, **utility_metrics["Electricity Consumption"])
-            with tab_chart_2:
+
+        col_map, col_data_table, col_chart = st.columns(3)
+        with st.container():
+            with col_map.container():
+                col_map.image("Cranfield_University_campus_map-1.png", caption="Cranfield University Map")
+
+
+            with col_data_table.container():
                 total_energy_bar_chart_per_month(df, building, **utility_metrics["Electricity Consumption"])
-            with tab_chart_3:
-                total_energy_line_chart_per_month(df, building,day, month, **utility_metrics["Electricity Consumption"])
-            with tab_chart_4:
-                plotter_for_heatmap(water, month, building, **utility_metrics["Water Consumption"])
-            with tab_chart_5:
                 total_energy_bar_chart_per_month(water, building, **utility_metrics["Water Consumption"])
-            with tab_chart_6:
-                total_energy_line_chart_per_month(water, building,day, month, **utility_metrics["Water Consumption"])                
+    
 
 
+            with col_chart.container():
+                plotter_for_heatmap(df, month, building, **utility_metrics["Electricity Consumption"])
+                plotter_for_heatmap(water, month, building, **utility_metrics["Water Consumption"])
 
+
+            
+        col_line_chart_1, col_line_chart_2 = st.columns(2)
+        with col_line_chart_1:
+            total_energy_line_chart_per_month(df, building,day, month, **utility_metrics["Electricity Consumption"])
+        with col_line_chart_2:
+            total_energy_line_chart_per_month(water, building,day, month, **utility_metrics["Water Consumption"]) 
 
 
             #visual_value = st.selectbox("Choose a column to see the count of its unique values: ", [None, 'Start Station', 'End Station', 'combination_station'])
