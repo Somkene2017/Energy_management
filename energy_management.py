@@ -3,6 +3,7 @@ import time
 import pandas as pd
 import numpy as np
 import plotly.express as px
+import plotly.graph_objects as go
 
 # References: 
 # 1) https://docs.streamlit.io/library
@@ -13,29 +14,22 @@ import plotly.express as px
 # 6) <a href="https://www.flaticon.com/free-icons/clean-energy" title="clean energy icons">Clean energy icons created by Flat Icons - Flaticon</a>
 # 7) <a href="https://www.flaticon.com/free-icons/carbon" title="carbon icons">Carbon icons created by juicy_fish - Flaticon</a>
 
-dark_mode_css = """
-    <style>
-        body {
-            color: white !important;
-            background-color: #0E1117 !important;
-        }
-        [data-testid="stAppViewContainer"] {
-            background-color: #0E1117 !important;
-        }
-        [data-testid="stHeader"] {
-            background-color: #0E1117 !important;
-        }
-        [data-testid="stSidebar"] {
-            background-color: #1E1E1E !important;
-        }
-    </style>
-"""
-
+st.set_page_config(page_title="Cloudberry Energy Dashboard", page_icon="cloudberry_logo_2.png",layout="wide")
 
 
 #BUILDING_DATA = { 'XO52A': 'Energy_usage_x052a_2024.csv',}
 BUILDING_DATA =pd.read_csv("Energy_usage_cranfield_campus_buildings_2024.csv")
 WATER_DATA =pd.read_csv("Water_usage_cranfield_campus_buildings_2024.csv")
+
+building_data_2 = BUILDING_DATA[BUILDING_DATA["site_name"] == "Campus Energy"]
+#Total of all Utilities (i.e., Energy, Water and CO2)
+total_annual_energy_consumption = int(building_data_2[building_data_2.columns[4:]].sum(axis=1).sum())
+total_annual_water_consumption = int(WATER_DATA[WATER_DATA.columns[4:]].sum(axis=1).sum())
+
+# st.metric("Total Annual Energy Consumption (KWh)", f"{total_annual_energy_consumption:,}")
+# st.metric("Total Annual Water Consumption (m\u00b3)", f"{total_annual_water_consumption:,}")
+
+
 
 #allowed_city = ['Chicago', 'New York City', 'Washington']
 
@@ -89,6 +83,50 @@ def load_data(building, month, day):
         df = df[df['day_of_week'] == day.title()]
     return df, water
 
+# Function to create a donut gauge
+def create_gauge(title, building_annual, total_annual, color, unit, utility):
+    progress = (building_annual / total_annual) * 100
+    progress = min(progress, 100)  # Ensure it doesn't exceed 100%
+
+    fig = go.Figure()
+
+    # Add main progress arc
+    fig.add_trace(go.Pie(
+        values=[progress, 100 - progress],
+        labels=["Progress", ""],
+        hole=0.7,
+        marker=dict(colors=[color, "lightgray"]),
+        textinfo="none",
+        sort=False
+    ))
+
+    # Add percentage text in the center 
+    fig.add_annotation(
+        text=f"<b>{progress:.2}%</b>",
+        x=0.5, y=0.5,
+        #font=dict(size=28, color="white"),
+        font=dict(size=28),
+        showarrow=False
+    )
+
+    # Layout settings
+    fig.update_layout(
+        showlegend=False,
+        width=300, height=300,
+        margin=dict(l=10, r=10, t=10, b=10),
+        #paper_bgcolor="black",
+        #plot_bgcolor="black"
+    )
+
+    # Display in Streamlit
+    with st.container():
+        st.markdown(f"<h4 style='text-align: center; color: white;'>{title}</h4>", unsafe_allow_html=True)
+        col4, col5 = st.columns(2)
+        col4.plotly_chart(fig)
+        with st.container():
+            col5.metric(f"Annual {utility} Consumption {unit}", f"{building_annual:,} {unit}")
+            col5.metric(f"Total Annual {utility} Consumption ({unit})", f"{total_annual:,} {unit}")
+
 
 def Load_Total_Utility_stats(df):
     """Displays statistics on the most popular stations and trip."""
@@ -122,13 +160,17 @@ def Total_Energy_stats(energy, water):
     col2.image("water.png")
     col3.image("CO2.png")
 
+    energy_cons = int(energy_usage.daily_total.sum())
+    water_cons = int(water_usage.daily_total.sum())
+
     col4,col5,col6 = st.columns(3)
-    col4.metric("Annual Energy Consumption (KWh)", f"{int(energy_usage.daily_total.sum()):,}")
-    col5.metric("Annual Water Consumption (m\u00b3)", f"{int(water_usage.daily_total.sum()):,}")
+    col4.metric("Annual Energy Consumption (KWh)", f"{energy_cons:,}")
+    col5.metric("Annual Water Consumption (m\u00b3)", f"{water_cons:,}")
     col6.metric("Annual CO Emissions (kgCO\u2082e/kWh)", f"{format_ghg_intensity(0.7)}")
 
     st.write("\nThis took {} seconds.".format(round(time.time() - start_time, 3)))
     st.write('-'*40)
+
 
 def Maximum_Energy_stats(df,utility,unit):
     """Displays statistics on the most popular stations and trip."""
@@ -279,6 +321,29 @@ def total_energy_line_chart_per_month(df_site, building_name, day, month, utilit
     st.plotly_chart(fig, use_container_width=True)
 
 
+def decison_maker(building):
+    # Room data
+    data = [
+        {"name": f"{building} Room1", "temp": 21, "co2": 846, "humidity": 31, "controls": ["HVAC", "Heating", "Lights 1", "Lights 2"]},
+        {"name": f"{building} Room2", "temp": 16, "co2": 262, "humidity": 42, "controls": ["HVAC", "Heating", "Lights 1"]},
+        {"name": f"{building} Room3", "temp": 20, "co2": 694, "humidity": 29, "controls": ["HVAC 1", "HVAC 2", "Heating", "Lights 1", "Lights 2", "Lights 3", "Lights 4"]}
+    ]
+
+    st.title("Real Time Measure")
+    st.text_input("Search Room", placeholder="Search Room")
+
+    for room in data:
+        with st.container():
+            st.subheader(f"{room['name']}")
+            st.checkbox("Saving Mode", key=f"saving_mode_{room['name']}")
+            st.write(f"Temperature {room['temp']}°C | CO2 Concentration {room['co2']} ppm | Humidity {room['humidity']}%")
+            
+            for control in room["controls"]:
+                col1, col2 = st.columns([1, 0.1])
+                with col1:
+                    st.checkbox(control, key=f"{control}_{room['name']}")
+                with col2:
+                    st.text("🔒")
 
 #This initilizes the streamlit's session_state dictionary in the format 'stage' : 0
 if 'stage' not in st.session_state:
@@ -288,7 +353,9 @@ def set_stage(i):
 
 def main():
     #st.markdown(dark_mode_css, unsafe_allow_html=True)
-    st.image("cloudberry_logo.png", caption=f"Cloudberry...All-in-One, Hassle-Free, Cost-Saving Energy Optimization​", width = 450)
+    # Now insert some more in the container
+
+    st.image("cloudberry_logo.png", caption=f"Cloudberry...All-in-One, Hassle-Free, Cost-Saving Energy Optimization​")
     st.markdown('# Hello! Let\'s explore Cranfield\'s Energy Consumption database!:smiley:')
     st.markdown("###### :warning: NOTE: Your required analysis will be based on the building you select. :warning:")
 
@@ -334,24 +401,51 @@ def main():
 
         #Loading the dataframe
         df, water = load_data(building, month, day)
-        
+    
         tab1, tab2, tab3 = st.tabs(["**Descriptive Statistics**", "**View DataFrame**", "**Charts**:chart_with_downwards_trend:"])
-
-        utility_metrics = {
-        "Electricity Consumption": {
-            "utility": "Energy",
-            "unit": "kWh"
-        },
-        "Water Consumption": {
-            "utility": "Water",
-            "unit": "m\u00b3"
-            }
-        } 
 
         #This tab contains the descriptive statistics
         with tab1:
-            Total_Energy_stats(df,water)
+            decison_maker(building)
+            Total_Energy_stats(df, water)
+
+            x = int(df['daily_total'].sum())
+            y = int(water['daily_total'].sum())
+            donut_metrics = {
+                "Electricity Consumption":         {
+                    "building_annual": x,
+                    "total_annual": total_annual_energy_consumption,
+                    "color": "#FFC000",  # Yellow
+                    "unit": "kWh",
+                    "utility": "Energy"
+                },
+                "Water Consumption": {
+                    "building_annual": y,
+                    "total_annual": total_annual_water_consumption,
+                    "color": "#28A745",  # Green
+                    "unit": "m\u00b3",
+                    "utility": "Water"
+                }
+            }
+
+            utility_metrics = {
+            "Electricity Consumption": {
+                "utility": "Energy",
+                "unit": "kWh"
+            },
+            "Water Consumption": {
+                "utility": "Water",
+                "unit": "m\u00b3"
+                }
+            } 
+            
+            #Total_Energy_stats(df,water)
             Maximum_Energy_stats(df, **utility_metrics["Electricity Consumption"])
+            col_energy, col_water = st.columns(2)
+            with col_energy:
+                create_gauge("Electricity Consumption Intensity", **donut_metrics["Electricity Consumption"])
+            with col_water:
+                create_gauge("Water Consumption Intensity", **donut_metrics["Water Consumption"])
             #Maximum_Energy_stats(water, **utility_metrics["Water Consumption"])    
         
         #This tab contains the dataframe if the user wishes to view it
