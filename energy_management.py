@@ -120,13 +120,15 @@ def create_gauge(title, building_annual, total_annual, color, unit, utility):
     )
 
     # Display in Streamlit
-    with st.container():
-        st.markdown(f"<h4 style='text-align: center; color: white;'>{title}</h4>", unsafe_allow_html=True)
-        col4, col5 = st.columns(2)
+    col4, col5 = st.columns(2)
+    st.markdown(f"<h4 style='text-align: center; color: white;'>{title}</h4>", unsafe_allow_html=True)
+
+    with col4.container():
+
         col4.plotly_chart(fig)
-        with st.container():
-            col5.metric(f"Annual {utility} Cons. ({unit})", f"{building_annual:,}")
-            col5.metric(f"Tot. Annual {utility} Cons. ({unit})", f"{total_annual:,}")
+    with col5.container():
+        col5.metric(f"Annual {utility} Cons. ({unit})", f"{building_annual:,}")
+        col5.metric(f"Tot. Annual {utility} Cons. ({unit})", f"{total_annual:,}")
 
 
 def Load_Total_Utility_stats(df):
@@ -327,7 +329,7 @@ def decison_maker(building):
     # Room data
     data = [
         {"name": f"{building} Room1", "temp": 15, "co2": 434, "humidity": 23, "controls": ["Heating (ASHP/GSHP)", "Lightbulb 1", "Lightbulb 2"]},
-        {"name": f"{building} Room2", "temp": 24, "co2": 232, "humidity": 26, "controls": ["Heating (ASHP/GSHP)", "Lightbulb 1"]},
+        {"name": f"{building} Room2", "temp": 24, "co2": 232, "humidity": 26, "controls": ["Heating (ASHP/GSHP)", "Lightbulb 1", "Lightbulb 2"]},
         {"name": f"{building} Room3", "temp": 23, "co2": 143, "humidity": 30, "controls": ["Heating (ASHP/GSHP)", "Lightbulb 1", "Lightbulb 2"]}
     ]
 
@@ -491,6 +493,7 @@ def main():
         with st.container():
             with col_map.container():
                 col_map.image("Cranfield_University_campus_map-1.png", caption="Cranfield University Map")
+                #col_map.image("cloudberry_logo_2.png", caption=f"Cloudberry...All-in-One, Hassle-Free, Cost-Saving Energy Optimization​")
 
 
             with col_data_table.container():
