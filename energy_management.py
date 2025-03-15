@@ -21,6 +21,7 @@ st.set_page_config(page_title="Cloudberry Energy Dashboard", page_icon="cloudber
 #BUILDING_DATA = { 'XO52A': 'Energy_usage_x052a_2024.csv',}
 BUILDING_DATA =pd.read_csv("Energy_usage_cranfield_campus_buildings_2024.csv")
 WATER_DATA =pd.read_csv("Water_usage_cranfield_campus_buildings_2024.csv")
+CO2_DATA =pd.read_csv("CO2_usage_cranfield_campus_buildings_2024.csv")
 
 building_data_2 = BUILDING_DATA[BUILDING_DATA["site_name"] == "Campus Energy"]
 #Total of all Utilities (i.e., Energy, Water and CO2)
@@ -52,37 +53,34 @@ def load_data(building, month, day):
         (str) month - name of the month to filter by, or "all" to apply no month filter
         (str) day - name of the day of week to filter by, or "all" to apply no day filter
     Returns:
-        df - Pandas DataFrame containing building data filtered by month and day
+        tuple - (building_df, water_df) Pandas DataFrames containing building data filtered by month and day
     """
-    #df = BUILDING_DATA.copy()
+    def process_dataframe(df, building=None):
+        """Helper function to process and filter a dataframe"""
+        if building is not None:
+            df = df[df["site_name"] == building]
+        
+        df['Date'] = pd.to_datetime(df['Date'])
+        df['month'] = df['Date'].dt.month_name()
+        df['day_of_week'] = df['Date'].dt.day_name()
+        
+        if month != 'all':
+            df = df[df['month'] == month.title()]
+        if day != 'all':
+            df = df[df['day_of_week'] == day.title()]
+            
+        return df
+    
+    # Process building data
+    building_df = process_dataframe(BUILDING_DATA, building)
+    
+    # Process water data
+    water_df = process_dataframe(WATER_DATA, building)
 
-    # Load Water data
-    water = WATER_DATA[WATER_DATA["site_name"] == building]
-    water['Date'] = pd.to_datetime(water['Date'])
-
-    water['month']=water['Date'].dt.month_name()
-    water['day_of_week'] = water['Date'].dt.day_name()
-
-    if month != 'all':
-        water = water[water['month'] == month.title()]
-    if day != 'all':
-        water = water[water['day_of_week'] == day.title()]
-
-    #load building data
-    if building != None:
-        df = BUILDING_DATA[BUILDING_DATA["site_name"] == building]
-
-    df['Date'] = pd.to_datetime(df['Date'])
-   #df['End Time'] = pd.to_datetime(df['End Time'])
-
-    df['month']=df['Date'].dt.month_name()
-    df['day_of_week'] = df['Date'].dt.day_name()
-
-    if month != 'all':
-        df = df[df['month'] == month.title()]
-    if day != 'all':
-        df = df[df['day_of_week'] == day.title()]
-    return df, water
+    # Process CO2 data
+    carbon_df = process_dataframe(CO2_DATA, building)    
+    
+    return building_df, water_df, carbon_df
 
 # Function to create a donut gauge
 def create_gauge(title, building_annual, total_annual, color, unit, utility):
@@ -151,12 +149,13 @@ def format_ghg_intensity(value):
     else:
         return f"{value * 1000:,} g {co2e}/kWh"
     
-def Total_Energy_stats(energy, water):
+def Total_Energy_stats(energy, water, carbon):
     st.write('#### Calculating Utility Usage Statistics...')
     start_time = time.time()
 
     energy_usage = Load_Total_Utility_stats(energy)
     water_usage = Load_Total_Utility_stats(water)
+    co2_usage = Load_Total_Utility_stats(carbon)
 
     col1, col2, col3 = st.columns(3)
     col1.image("clean.png")
@@ -165,12 +164,13 @@ def Total_Energy_stats(energy, water):
 
     energy_cons = int(energy_usage.daily_total.sum())
     water_cons = int(water_usage.daily_total.sum())
+    carbon_cons = int(co2_usage.daily_total.sum())
 
     col4,col5,col6 = st.columns(3)
     col4.metric("Annual Energy Consumption (KWh)", f"{energy_cons:,}")
     col5.metric("Annual Water Consumption (m\u00b3)", f"{water_cons:,}")
     #col6.metric("Annual CO2 Emissions (kgCO\u2082e/kWh)", f"{format_ghg_intensity(0.7)}")
-    col6.metric("Annual CO2 Emissions (gCO\u2082e/kWh)", f"{700}")
+    col6.metric("Annual CO2 Emissions (kgCO\u2082e/kWh)", f"{int(carbon_cons/1000):,}")
 
     st.write("\nThis took {} seconds.".format(round(time.time() - start_time, 3)))
     st.write('-'*40)
@@ -407,7 +407,7 @@ def main():
 
     if st.session_state.stage >= 3:
         #Loading the dataframe
-        df, water = load_data(building, month, day)      
+        df, water, carbon = load_data(building, month, day)      
         if rows != 0:
         #df = pd.read_csv("Energy_usage_x052a_2024.csv")
         #df2 = df.drop(df.columns[-2:], axis=1)
@@ -418,7 +418,7 @@ def main():
         with col_metrics.container():
             #Loading the dataframe
             #decison_maker(building)
-            Total_Energy_stats(df, water)
+            Total_Energy_stats(df, water, carbon)
 
             x = int(df['daily_total'].sum())
             y = int(water['daily_total'].sum())
