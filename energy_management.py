@@ -300,7 +300,7 @@ def total_energy_line_chart_per_month(df_site, building_name, day, month, utilit
 
 
     # 7. Group by month and sum daily totals to get monthly energy usage
-    daily_totals = df_site.groupby("Date")["daily_total"].sum().reset_index()
+    daily_totals = df_site[["Date", "daily_total"]]
 
     # 8. Create a bar chart using Plotly Express
     if day != "all":
